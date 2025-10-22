@@ -1,0 +1,8 @@
+DatasetTrain/*
+
+!DatasetTrain/.gitkeep
+!DatasetTrain/Aom/.gitkeep
+!DatasetTrain/Most/.gitkeep
+!DatasetTrain/New/.gitkeep
+
+*.png
