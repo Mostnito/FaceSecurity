@@ -1,4 +1,3 @@
-#import library ที่จำเป็น
 import streamlit as st
 import cv2
 import numpy as np
@@ -11,11 +10,11 @@ import tensorflow as tf
 
 st.title("Face Security")
 
-frame_placeholder = st.empty() #สร้างไว้เตรียมพื้นที่สำหรับกล้อง
+frame_placeholder = st.empty()
 
 
 
-if "Mode" not in st.session_state: #กำหนดstate เก็บค่าต่างๆไว้
+if "Mode" not in st.session_state:
     st.session_state.Mode = "menu"
 if "run_camera" not in st.session_state:
     st.session_state.run_camera = False
@@ -33,30 +32,32 @@ if "class_names" not in st.session_state:
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 if st.session_state.Mode == "menu":
-    col1,col2,col3 = st.columns(3) #แบ่ง3คอลัม
+    col1,col2,col3 = st.columns(3)
     
-    SetupMode_btn = col1.button("Setup",width="stretch") #ปุ่มsetup
-    Start_btn = col2.button("Start",width="stretch") #ปุ่มเปิดกล้อง
-    Stop_btn = col3.button("Stop Camera",width="stretch")#ปุ่มปิดกล้อง
+    SetupMode_btn = col1.button("Setup",width="stretch")
+    Start_btn = col2.button("Start",width="stretch")
+    Stop_btn = col3.button("Stop Camera",width="stretch")
 
 
-    if SetupMode_btn: #เมื่อกดปุ่ม Setup
+    if SetupMode_btn:
         st.session_state.Mode = "setup"
         st.session_state.run_camera = False
         st.rerun()
-    if Start_btn: #เมื่อกดปุ่ม Start
+    if Start_btn:
         st.session_state.run_camera = True
-    if Stop_btn: #เมื่อกดปุ่ม Stop
+    if Stop_btn:
         st.session_state.run_camera = False
         
 elif st.session_state.Mode == "setup":
     #Setup Mode
-    if st.button("ย้อนกลับ", width="stretch"): #ปุ่ม ย้อนกลับ ไปหน้าหลัก
+    
+
+    if st.button("ย้อนกลับ", width="stretch"):
         st.session_state.Mode = "menu"
         st.rerun()
 
-    st.markdown("<h1 style='text-align: center; color: grey;'>เพิ่มสมาชิกในบ้าน</h1>", unsafe_allow_html=True) #title หัวข้อ
-    #ส่วนของการเช็คFolderในDataset
+    st.markdown("<h1 style='text-align: center; color: grey;'>เพิ่มสมาชิกในบ้าน</h1>", unsafe_allow_html=True)   
+
     folder_name = st.text_input("ตั้งชื่อโฟลเดอร์ใหม่:", placeholder="เช่น Most")
     if st.button("สร้างโฟลเดอร์"):
         if folder_name.strip() == "":
@@ -68,19 +69,19 @@ elif st.session_state.Mode == "setup":
                 st.success(f"สร้างโฟลเดอร์ {folder_name} สำเร็จแล้ว!")
             else:
                 st.info(f"โฟลเดอร์ {folder_name} มีอยู่แล้ว")
-    #ส่วนของการเลือกDataSet
+
     existing_folders = [f for f in os.listdir("DatasetTrain") if os.path.isdir(os.path.join("DatasetTrain", f))]
     if existing_folders:
         selected_folder = st.selectbox("เลือกสมาชิก Dataset:", existing_folders)
         st.write(f"สมาชิกที่เลือกคือ: {selected_folder}")
     else:
         st.info("กรุณาเพิ่มชื่อสมาชิก")
-    #ปุ่มกดเริ่มตรวจจับใบหน้า
+
     if st.button("เริ่มตรวจจับใบหน้า", width="stretch",type="primary"):
         st.session_state.member = True
         st.rerun()
 
-    st.markdown("<h1 style='text-align: center; color: grey;'>ฝึกโมเดล</h1>", unsafe_allow_html=True) #title หัวข้อ
+    st.markdown("<h1 style='text-align: center; color: grey;'>ฝึกโมเดล</h1>", unsafe_allow_html=True)
     if not os.path.exists("DataSetTrain"):
         st.warning("ยังไม่มีโฟลเดอร์")
     else:
@@ -104,10 +105,10 @@ elif st.session_state.Mode == "setup":
                     random_img = random.choice(images)
                     img_path = os.path.join(folder_path, random_img)
                     st.image(Image.open(img_path), caption=f"{folder} - {random_img}", width=200)
-    if st.button("เริ่มเทรนโมเดล", width="stretch",type="primary"): #ปุ่มเริ่มเทรนโมเดล
+    if st.button("เริ่มเทรนโมเดล", width="stretch",type="primary"):
         st.session_state.train = True
 
-#เมื่อกดปุ่มเปิดกล้องจะทำตามstateนี้
+#Detection Mode
 if st.session_state.run_camera:
     cam = cv2.VideoCapture(0)
     class_names = st.session_state.class_names
@@ -117,9 +118,10 @@ if st.session_state.run_camera:
         if not ret:
             break
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
         #ตรวจจับใบหน้าในภาพ scaleFactor
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100))
+
+
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         if len(faces) > 0:
@@ -154,7 +156,7 @@ if st.session_state.run_camera:
     cv2.destroyAllWindows()
     print("ปิดกล้องเรียบร้อย")
 
-#เมื่อกดปุ่มตรวจจับใบหน้าจะทำตามstateนี้
+
 if st.session_state.member:
     cam = cv2.VideoCapture(0)
     i=1
@@ -219,7 +221,6 @@ if st.session_state.member:
     print("ปิดกล้องเรียบร้อย")
     st.rerun()
 
-#เมื่อกดปุ่มเทรนโมเดลจะทำตามstateนี้
 if st.session_state.train:
     dataset_dir = os.path.join(os.getcwd(), f"DatasetTrain")
     from tensorflow.keras.preprocessing.image import ImageDataGenerator #นำเข้าImageDataGeneratorจาก Keras ซึ่งเป็นคลาสที่ใช้สร้างออบเจกต์สำหรับ เตรียมข้อมูลภาพ
