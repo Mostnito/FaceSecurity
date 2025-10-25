@@ -33,7 +33,7 @@ if "class_names" not in st.session_state:
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 if st.session_state.Mode == "menu":
-    col1,col2,col3 = st.columns(3) #แบ่ง3คอลัม
+    col1,col2,col3 = st.columns(3)
     
     SetupMode_btn = col1.button("Setup",width="stretch") #ปุ่มsetup
     Start_btn = col2.button("Start",width="stretch") #ปุ่มเปิดกล้อง
@@ -222,30 +222,28 @@ if st.session_state.member:
 #เมื่อกดปุ่มเทรนโมเดลจะทำตามstateนี้
 if st.session_state.train:
     dataset_dir = os.path.join(os.getcwd(), f"DatasetTrain")
-    from tensorflow.keras.preprocessing.image import ImageDataGenerator #นำเข้าImageDataGeneratorจาก Keras ซึ่งเป็นคลาสที่ใช้สร้างออบเจกต์สำหรับ เตรียมข้อมูลภาพ
+    from tensorflow.keras.preprocessing.image import ImageDataGenerator
     datagen = ImageDataGenerator(
-        rescale=1./255, #ปรับค่าสีของภาพจากช่วง [0, 255] ไป [0, 1]
-        validation_split=0.2, #แบ่งข้อมูลสำหรับvalidation 20%
-        rotation_range=20, #ซูมภาพแบบสุ่มในช่วง 20องศา ทำให้มีมุมมองโมเดลมากขึ้น แม่นยำขึ้น
-        zoom_range=0.2, #ระยะซูมภาพสุ่ม20% เพื่อความแม่นยำ
-        width_shift_range=0.1, #ขยับภาพในแนวนอนแบบสุ่มได้สูงสุด 10% ของความกว้าง
-        height_shift_range=0.1, #ขยับภาพในแนวตั้งแบบสุ่มได้สูงสุด 10% ของความสูง
-        shear_range=0.2, #ทำการ เฉือน (shear transformation) ของภาพ
-        horizontal_flip=True, #กลับภาพในแนวนอน (ซ้าย↔ขวา) แบบสุ่ม
+        rescale=1./255,
+        validation_split=0.2,
+        rotation_range=20,
+        zoom_range=0.2,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        shear_range=0.2,
+        horizontal_flip=True,
     )
-        # กำหนดค่าพื้นฐาน
     BATCH_SIZE = 32
-    IMG_SIZE = 150 # ขนาดรูปภาพที่ต้องการ (กว้าง x สูง)
+    IMG_SIZE = 150
 
 
-    #datagen.flow_from_directory เพื่อโหลดภาพจากโฟลเดอร์ และเตรียมให้พร้อมสำหรับการเทรนในรูปแบบ batch
     # สร้างชุดข้อมูลสำหรับฝึก (Train)
     train_dataset = datagen.flow_from_directory(
-        dataset_dir,#path folder ของข้อมูลที่จะนำไปเทรน
-        target_size=(150, 150),#กำหนดขนาดภาพ resize ให้มีขนาด 150×150 pixel ก่อนนำเข้าโมเดล
-        batch_size=32, #แต่ละรอบจะส่งภาพเข้าระบบทีละ 32 ภาพ เพื่อไม่ให้กินหน่วยความจำมากเกินไป
-        class_mode='categorical', #ระบุว่า label ของข้อมูลเป็นแบบ “หลายคลาส” (multi-class)
-        subset='training'#ใช้เฉพาะข้อมูลส่วนที่เป็น training
+        dataset_dir,
+        target_size=(150, 150),
+        batch_size=32,
+        class_mode='categorical',
+        subset='training'
     )
 
     val_dataset = datagen.flow_from_directory(
@@ -253,37 +251,33 @@ if st.session_state.train:
         target_size=(150, 150),
         batch_size=32,
         class_mode='categorical',
-        subset='validation' #ใช้เฉพาะข้อมูลส่วนที่เป็น validation
+        subset='validation'
     )
 
     base_model = tf.keras.applications.MobileNetV2(
-        input_shape=(IMG_SIZE, IMG_SIZE, 3),#กำหนดขนาดของภาพที่จะป้อนเข้าโมเดล 3 คือ RGB
-        include_top=False,#→ ไม่เอาส่วน “หัวโมเดล” (fully connected layers) เพราะเราจะเพิ่ม “head” ของเราที่จำแนกเฉพาะคลาสใน dataset ของเราเอง
-        weights='imagenet' #โหลดน้ำหนักที่เทรนมาจาก ImageNet มาใช้ เพื่อใช้ประโยชน์จาก feature ที่โมเดลเรียนรู้ไว้แล้ว(transfer learning)
+        input_shape=(IMG_SIZE, IMG_SIZE, 3),
+        include_top=False,
+        weights='imagenet'
     )
 
-    base_model.trainable = False  # ไม่เทรนชั้น base
+    base_model.trainable = False
 
-    # แสดงชื่อคลาสที่เจอ ('Aom','Most','New')
     class_names = list(train_dataset.class_indices.keys())
     print("คลาสที่พบ:", class_names)
 
-        # สร้างโมเดลแบบลำดับชั้น (Sequential)
-    # Sequential: คือการบอกว่าจะสร้างโมเดลโดยการนำแต่ละชั้น (layer) มาต่อกันเป็นลำดับ
     model = tf.keras.Sequential([ 
-        base_model, #คือโมเดลฐาน ที่ถูกโหลดมาจากโมเดลสำเร็จรูป (pretrained model)
-    tf.keras.layers.GlobalAveragePooling2D(), #ลดมิติของ Feature Map ที่ได้จาก base_model
-        tf.keras.layers.Flatten(),#แปลงข้อมูลจาก2D,3D เป็น 1D
-        tf.keras.layers.Dense(128, activation='relu'), #ใช้reluปรับ
-        tf.keras.layers.Dropout(0.3),#ปิดการทำงานของบาง neuron แบบสุ่ม 30% (0.3) ขณะเทรน ป้องกันoverfitting
-        tf.keras.layers.Dense(3, activation='softmax')  # จำแนก3class ใช้ฟังก์ชัน Softmax เพื่อให้ผลลัพธ์ออกมาเป็น ความน่าจะเป็นรวมกันได้ 1
+        base_model,
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dropout(0.3),
+        tf.keras.layers.Dense(3, activation='softmax')
     ])
 
-        # optimizer (วิธีปรับปรุงโมเดล), loss (วิธีวัดความผิดพลาด) และ metrics (การวัดผล เช่น accuracy หรือความแม่นยำ)
-    model.compile(optimizer='adam', #อัลกอริทึมปรับน้ำหนักอัตโนมัติ ที่ได้รับความนิยมมากที่สุดใน deep learning
-                loss='categorical_crossentropy', #ใช้ในกรณีที่มี หลายคลาส
+    model.compile(optimizer='adam',
+                loss='categorical_crossentropy',
                 metrics=['accuracy'])
-    EPOCHS = 5 # จำนวนรอบในการฝึก
+    EPOCHS = 5
     progress_bar = st.progress(0)
     status_text = st.empty()
     status_text.text("กำลังฝึกโมเดล กรุณารอสักครู่ . . .")
@@ -292,7 +286,7 @@ if st.session_state.train:
         history = model.fit(
             train_dataset,
             validation_data=val_dataset,
-            epochs=1,  # ฝึกทีละ 1 epoch
+            epochs=1, 
         )
         train_acc = history.history['accuracy'][0]
         val_acc = history.history['val_accuracy'][0]
